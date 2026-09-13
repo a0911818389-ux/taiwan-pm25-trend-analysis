@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>全臺PM2.5空氣品質長期趨勢分析</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #F4F6F5;
+    --surface: #FFFFFF;
+    --surface-2: #EAEFEC;
+    --ink: #16262B;
+    --muted: #57696E;
+    --accent: #1F6F78;
+    --accent-2: #C97B3B;
+    --accent-ink: #FFFFFF;
+    --line: #D8DEDB;
+    --shadow: 0 1px 2px rgba(22,38,43,0.06), 0 8px 24px -12px rgba(22,38,43,0.18);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1416; --surface: #131C1F; --surface-2: #182226;
+      --ink: #E7EDEC; --muted: #8FA1A4; --accent: #58C4CD; --accent-2: #E3A063;
+      --accent-ink: #06181A; --line: #253134;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1416; --surface: #131C1F; --surface-2: #182226;
+    --ink: #E7EDEC; --muted: #8FA1A4; --accent: #58C4CD; --accent-2: #E3A063;
+    --accent-ink: #06181A; --line: #253134;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: 'Noto Sans TC', 'PingFang TC', sans-serif;
+    line-height: 1.75; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: 'LXGW WenKai TC', 'Noto Sans TC', serif; text-wrap: balance; font-weight: 700; }
+  .mono { font-family: 'Space Mono', monospace; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero { padding: 64px 0 40px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    display: inline-block; font-family: 'Space Mono', monospace; font-size: 0.78rem;
+    letter-spacing: 0.08em; color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    padding: 4px 10px; border-radius: 3px; margin-bottom: 18px;
+  }
+  h1.title { font-size: clamp(1.8rem, 4.5vw, 2.6rem); margin: 0 0 14px; }
+  .tagline { font-size: 1.05rem; color: var(--muted); max-width: 60ch; margin: 0 0 32px; }
+
+  .readout {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px; background: var(--line); border: 1px solid var(--line);
+    border-radius: 8px; overflow: hidden;
+  }
+  .readout .cell { background: var(--surface); padding: 16px 18px; }
+  .readout .val { font-family: 'Space Mono', monospace; font-size: 1.4rem; font-weight: 700; color: var(--accent); line-height: 1; }
+  .readout .label { margin-top: 6px; font-size: 0.76rem; color: var(--muted); }
+
+  section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 26px; }
+  .section-head .num { font-family: 'Space Mono', monospace; color: var(--accent-2); font-size: 0.85rem; }
+  .section-head h2 { font-size: 1.35rem; margin: 0; }
+
+  .prose { max-width: 68ch; }
+  .prose p { margin: 0 0 16px; }
+
+  figure { margin: 0 0 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); }
+  figure img { display: block; width: 100%; height: auto; border-radius: 6px; }
+  figcaption { margin-top: 12px; font-size: 0.85rem; color: var(--muted); text-align: center; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 0.92rem; }
+  th, td { border: 1px solid var(--line); padding: 10px 12px; text-align: left; }
+  th { background: var(--surface-2); font-weight: 700; }
+  tr.best td { background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 700; }
+
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+  .tag { font-size: 0.78rem; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  .finding { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 16px; }
+  .finding b { color: var(--accent); }
+  .caveat { background: var(--surface); border-left: 3px solid var(--accent-2); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 16px; }
+  .caveat b { color: var(--accent-2); }
+
+  footer { padding: 32px 0 48px; text-align: center; color: var(--muted); font-size: 0.82rem; }
+
+  @media (max-width: 600px) { header.hero { padding: 48px 0 32px; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">政府開放資料應用案例 · 空氣品質</span>
+    <h1 class="title">全臺PM2.5空氣品質長期趨勢分析</h1>
+    <p class="tagline">以環境部「環境資料開放平臺」公開的全臺PM2.5日均值資料為對象，涵蓋2022～2026年共56個月份、去重複後逾13萬筆測站日資料，進行長期趨勢與季節性視覺化、縣市／假日平日／氣象因子關係分析，並建立預測模型。</p>
+    <div class="readout">
+      <div class="cell"><div class="val">130,832</div><div class="label">去重複後測站日資料筆數</div></div>
+      <div class="cell"><div class="val">56</div><div class="label">涵蓋月份數（2022～2026）</div></div>
+      <div class="cell"><div class="val">-0.579</div><div class="label">降水量 × PM2.5 相關係數</div></div>
+      <div class="cell"><div class="val">0.397</div><div class="label">最佳模型 R平方</div></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="section-head"><span class="num">01</span><h2>問題背景與資料</h2></div>
+    <div class="prose">
+      <p>空氣品質是政府開放資料中與民眾健康最直接相關的類別之一。環境部透過「環境資料開放平臺」對外公開全臺各測站的PM2.5日均值資料。本專案按月份批次下載，取得2022年1月～2026年8月共56個月份資料，涵蓋全臺81個測站代碼、22個縣市，並額外向中央氣象署CODiS取得臺北測站的月風速、降水量資料，做為氣象關聯分析之用。</p>
+    </div>
+    <div class="tag-row">
+      <span class="tag">Python</span><span class="tag">pandas / NumPy</span><span class="tag">scikit-learn</span>
+      <span class="tag">Matplotlib</span><span class="tag">政府開放資料</span>
+    </div>
+    <div class="caveat"><b>資料品質問題：</b>合併56個月份共214,478筆原始資料後，發現同一測站、同一天出現超過一筆紀錄的情形，尤其在2024年後明顯增加，最誇張一筆重複達5次。原本假設是「監測站數量增加」造成筆數暴增，但畫圖驗證後發現測站數僅78→80站、幾乎沒有成長，才確認是原始資料本身存在82,679筆重複列，去重複後剩130,832筆有效資料，本專案所有分析皆以去重複後的資料為準。</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head"><span class="num">02</span><h2>長期趨勢與季節性分析</h2></div>
+    <figure>
+      <img src="chart_station_count_trend.png" alt="原始筆數與去重複後筆數對比">
+      <figcaption>圖1　每月原始筆數 vs 去重複後（測站×日）筆數對比</figcaption>
+    </figure>
+    <figure>
+      <img src="chart_national_avg_trend.png" alt="全臺PM2.5月平均濃度長期趨勢">
+      <figcaption>圖2　全臺PM2.5月平均濃度：長期趨勢（2022～2026）</figcaption>
+    </figure>
+    <figure>
+      <img src="chart_seasonal_pattern.png" alt="各月份平均濃度季節規律">
+      <figcaption>圖3　全臺PM2.5各月份平均濃度：季節性規律</figcaption>
+    </figure>
+    <div class="finding"><b>發現：</b>全臺PM2.5月平均濃度呈現非常規律的季節循環，冬季（11月～4月）偏高、夏季（6～8月）偏低，1月平均18.9 μg/m³ 對比夏季最低月份約7~8 μg/m³，振幅超過2.5倍，反映東北季風帶來境外污染物與冬季逆溫層不利擴散的共同效應。</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head"><span class="num">03</span><h2>關係分析：縣市、假日平日與氣象因子</h2></div>
+    <div class="prose">
+      <p>正規化中英文縣市名稱（22個縣市在原始資料中因EN/ZH混用而出現44種不同寫法）後，比較各縣市平均濃度差異；並比較平日與假日的濃度差異，藉此判斷污染來源是否與交通尖峰時段等短期人為活動有關。另外整合CODiS臺北測站的月風速、降水量資料，探討氣象因子與PM2.5的相關性。</p>
+    </div>
+    <figure>
+      <img src="chart_county_comparison.png" alt="各縣市PM2.5平均濃度比較">
+      <figcaption>圖4　全臺各縣市PM2.5平均濃度比較</figcaption>
+    </figure>
+    <figure>
+      <img src="chart_weekday_weekend.png" alt="平日與假日PM2.5濃度比較">
+      <figcaption>圖5　平日 vs 假日：各星期PM2.5平均濃度</figcaption>
+    </figure>
+    <figure>
+      <img src="chart_wind_vs_pm25.png" alt="風速與PM2.5關係">
+      <figcaption>圖6　臺北站月平均風速 vs 全臺PM2.5月平均濃度（r = 0.343）</figcaption>
+    </figure>
+    <figure>
+      <img src="chart_rain_vs_pm25.png" alt="降水量與PM2.5關係">
+      <figcaption>圖7　臺北站月降水量 vs 全臺PM2.5月平均濃度（r = -0.579）</figcaption>
+    </figure>
+    <div class="finding"><b>發現：</b>高雄市（17.8 μg/m³）與西南部、離島縣市偏高，臺東縣（6.0 μg/m³）等東部縣市偏低；平日與假日幾乎無差異（13.61 vs 13.47 μg/m³），顯示PM2.5主要受區域性背景污染主導而非交通尖峰時段。降水量與PM2.5呈中度負相關（r = -0.579），符合降雨沖刷污染物的物理直覺；風速雖與PM2.5呈正相關（r = 0.343），但深入分析後判斷是「季節」同時影響兩者（冬天風大、冬天PM2.5也偏高）的混淆變數效應，而非風速直接推高PM2.5，提醒解讀相關係數時需留意是否存在第三個變數同時影響兩者。</div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head"><span class="num">04</span><h2>PM2.5預測模型</h2></div>
+    <div class="prose">
+      <p>以縣市、年份、月份、星期幾共4個欄位為特徵，比較線性迴歸與Random Forest兩種模型。從去重複後13萬筆資料中隨機抽樣3萬筆建模（避免訓練時間過長），訓練集24,000筆、測試集6,000筆。</p>
+    </div>
+    <table>
+      <tr><th>模型</th><th>R平方（解釋力）</th><th>MAE</th><th>RMSE</th></tr>
+      <tr><td>線性迴歸</td><td>0.3681</td><td>5.219 μg/m³</td><td>6.796 μg/m³</td></tr>
+      <tr class="best"><td>Random Forest</td><td>0.3972</td><td>4.978 μg/m³</td><td>6.638 μg/m³</td></tr>
+    </table>
+    <div class="finding"><b>結論：</b>特徵重要性前3名為高雄市（縣市別）、6月、8月（季節月份），與縣市及季節性分析結果互相驗證。R平方約0.37~0.40，較房價案例略低，反映PM2.5受天氣、境外傳輸等本次未納入的外部因素影響較大。</div>
+    <div class="caveat"><b>為什麼沒有納入風速、降水量作為特徵：</b>氣象關聯分析用的是「全臺月平均PM2.5」對「臺北單一測站的月資料」，是月為單位、全國只有一組數字。但預測模型是用「每個測站、每一天」的原始紀錄，如果每一筆都套用同一個臺北測站的月平均天氣數字，等於81個測站在同一個月都套用一模一樣的天氣（雲林的天氣不會跟臺北一樣），會嚴重扭曲模型。因此這次模型主動排除風速、降水量，只用縣市、年份、月份、星期幾這些顆粒度一致的特徵。</div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    完整成果報告與原始碼請見 <a href="README.md">README</a> 與根目錄的分析腳本 ・ 2026年9月
+  </div>
+</footer>
+
+</body>
+</html>
